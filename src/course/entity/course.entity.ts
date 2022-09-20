@@ -9,12 +9,12 @@ import {
 import { User } from 'src/user/user.entity';
 
 @Entity()
-export class Lecture {
+export class Course {
 	@PrimaryGeneratedColumn()
 	id: number;
 
 	@ManyToOne((type) => User, { onDelete: 'CASCADE', nullable: false })
-	@JoinColumn({ name: 'uid' })
+	@JoinColumn({ name: 'user' })
 	user: User;
 
 	@Column({ unique: true })

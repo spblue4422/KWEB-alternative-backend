@@ -1,9 +1,9 @@
 {
 	"type": "mysql",
 	"host": "localhost",
-	"port": 5432,
+	"port": 3306,
 	"username": "spblue4422",
-	"password": "",
+	"password": "spblue4422",
 	"database": "kweb",
 	"entities": ["dist/**/**.entity{.ts,.js}"],
 	"synchronize": true

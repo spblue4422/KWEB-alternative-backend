@@ -6,16 +6,16 @@ import {
 	ManyToOne,
 	CreateDateColumn,
 } from 'typeorm';
-import { Lecture } from './lecture.entity';
+import { Course } from './course.entity';
 
 @Entity()
-export class LectureBoard {
+export class Lecture {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@ManyToOne((type) => Lecture, { onDelete: 'CASCADE', nullable: false })
-	@JoinColumn({ name: 'lid' })
-	lecture: Lecture;
+	@ManyToOne((type) => Course, { onDelete: 'CASCADE', nullable: false })
+	@JoinColumn({ name: 'lecture' })
+	course: Course;
 
 	@Column()
 	title: string;
