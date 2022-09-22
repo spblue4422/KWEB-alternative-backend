@@ -10,6 +10,7 @@ import { CreateCourseDto } from './dto/createCourse.dto';
 import { CreateLectureDto } from './dto/createLecture.dto';
 import { Course } from './entity/course.entity';
 import { Lecture } from './entity/lecture.entity';
+import { User } from 'src/user/user.entity';
 
 @Injectable()
 export class CourseService {
@@ -20,13 +21,22 @@ export class CourseService {
 
 		@InjectRepository(Lecture)
 		private readonly lectureRepository: Repository<Lecture>,
+
+		@InjectRepository(User)
+		private readonly userRepository: Repository<User>,
 	) {}
 
 	// 전체 강의 목록 조회
 	async findAllCourses(): Promise<Course[]> {
-		return this.courseRepository.find().catch((err) => {
-			throw new InternalServerErrorException();
-		});
+		return this.courseRepository
+			.find({
+				relations: {
+					user: true,
+				},
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
 	}
 
 	// 강의 조회 - 강의 id
@@ -35,6 +45,9 @@ export class CourseService {
 			.findOne({
 				where: {
 					id: id,
+				},
+				relations: {
+					user: true,
 				},
 			})
 			.catch((err) => {
@@ -50,6 +63,9 @@ export class CourseService {
 					user: {
 						userId: uid,
 					},
+				},
+				relations: {
+					user: true,
 				},
 			})
 			.catch((err) => {
@@ -91,7 +107,28 @@ export class CourseService {
 
 	// 강의 insert/update/delete는 user가 교수인지 확인해야함.
 	async insertCourse(createCourseDto: CreateCourseDto) {
-		await this.courseRepository.insert({});
+		const { userId, name, description } = createCourseDto;
+		const userData = await this.userRepository
+			.findOne({
+				where: {
+					id: userId,
+				},
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+
+		await this.courseRepository
+			.insert({
+				user: userData,
+				name: name,
+				description: description,
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+
+		return { code: 'SUCCESS', message: '강의 정보 추가에 성공했습니다.' };
 	}
 
 	async updateCourse() {}

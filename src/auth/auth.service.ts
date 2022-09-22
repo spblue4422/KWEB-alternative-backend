@@ -31,8 +31,18 @@ export class AuthService {
 		return null;
 	}
 
-	async login(user) {
-		const payload = { userId: user.userId, sub: user.id };
-		return { access_token: this.jwtService.sign(payload) };
+	async userLogin(user) {
+		const payload = {
+			id: user.id,
+			userId: user.userId,
+			name: user.name,
+			uN: user.uniqueNum,
+			sts: user.status,
+		};
+		return {
+			userId: user.userId,
+			token: this.jwtService.sign(payload),
+			message: '로그인 성공',
+		};
 	}
 }
