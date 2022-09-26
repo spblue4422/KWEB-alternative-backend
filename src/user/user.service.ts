@@ -30,22 +30,16 @@ export class UserService {
 			});
 	}
 
-	async findUserById(uid: string) {
+	//그냥 전체 select하고 controller에서 가공하면 될듯
+	async findUserByUserId(uid: string) {
 		return this.userRepository
 			.findOne({
-				select: {
-					id: true,
-					userId: true,
-					name: true,
-					uniqueNum: true,
-					status: true,
-				},
 				where: {
 					userId: uid,
 				},
 			})
 			.catch((err) => {
-                console.log(12);
+				console.log(12);
 				throw new InternalServerErrorException();
 			});
 	}
@@ -82,16 +76,16 @@ export class UserService {
 		const r1 = await this.isUniqueInfo('userId', userId);
 		if (r1) {
 			console.log(r1);
-			return { code: 'FAIL', message: '중복 ID입니다.', dt: r1 };
+			return { code: 'FAIL', msg: '중복 ID입니다.', dt: r1 };
 		}
 
 		const r2 = await this.isUniqueInfo('uniqueNum', uniqueNum);
 		if (r2) {
-			return { code: 'FAIL', message: '중복 학번입니다.', dt: r2 };
+			return { code: 'FAIL', msg: '중복 학번입니다.', dt: r2 };
 		}
 
 		if (status !== 'student' && status !== 'professor') {
-			return { code: 'FAIL', message: '잘못된 상태 정보 입니다.' };
+			return { code: 'FAIL', msg: '잘못된 상태 정보 입니다.' };
 		}
 
 		await this.userRepository
@@ -106,20 +100,20 @@ export class UserService {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', message: '유저 정보 추가에 성공했습니다.' };
+		return { code: 'SUCCESS', msg: '유저 정보 추가에 성공했습니다.' };
 	}
 
 	//어드민 계정이 있을 수 있기 때문에, 실제 있는 계정인지 확인은 있어야 하지 않을까.
 	async updateUser(uid: string, updateUserDto: UpdateUserDto) {
 		const { name, password, status } = updateUserDto;
-		const data = await this.findUserById(uid);
+		const data = await this.findUserByUserId(uid);
 
 		if (!data) {
-			return { code: 'FAIL', message: '존재하지 않는 ID입니다.' };
+			return { code: 'FAIL', msg: '존재하지 않는 ID입니다.' };
 		}
 
 		if (status !== 'student' && status !== 'professor') {
-			return { code: 'FAIL', message: '잘못된 상태 정보 입니다.' };
+			return { code: 'FAIL', msg: '잘못된 상태 정보 입니다.' };
 		}
 
 		await this.userRepository
@@ -132,21 +126,21 @@ export class UserService {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', message: '유저 정보 변경에 성공했습니다.' };
+		return { code: 'SUCCESS', msg: '유저 정보 변경에 성공했습니다.' };
 	}
 
 	// 삭제와 동시에 로그아웃 되어야함.
 	async deleteUser(uid: string) {
-		const data = await this.findUserById(uid);
+		const data = await this.findUserByUserId(uid);
 
 		if (!data) {
-			return { code: 'FAIL', message: '존재하지 않는 ID입니다.' };
+			return { code: 'FAIL', msg: '존재하지 않는 ID입니다.' };
 		}
 
 		await this.userRepository.delete(data.id).catch((err) => {
 			throw new InternalServerErrorException();
 		});
 
-		return { code: 'SUCCESS', message: '유저 정보 삭제에 성공했습니다.' };
+		return { code: 'SUCCESS', msg: '유저 정보 삭제에 성공했습니다.' };
 	}
 }

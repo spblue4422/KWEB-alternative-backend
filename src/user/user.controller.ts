@@ -26,7 +26,7 @@ export class UserController {
 		console.log(req.user);
 		try {
 			const data = await this.userService.findAllUsers();
-			res.status(200).send({ data: data });
+			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
 		} catch (err) {
 			res.status(500).send(err);
 		}
@@ -41,19 +41,26 @@ export class UserController {
 		@Res() res: Response,
 	) {
 		try {
-			const data = await this.userService.findUserById(uid);
-
-			if (!data) {
-				res.status(404).send({ data: data });
-			} else {
-				if (
-					req.user.userId == uid ||
-					(req.user.userId != uid && req.user.status == 'professor')
-				) {
-					res.status(200).send({ data: data });
+			if (
+				req.user.userId == uid ||
+				(req.user.userId != uid && req.user.status == 'professor')
+			) {
+				const data = await this.userService.findUserByUserId(uid);
+				if (!data) {
+					res.status(404).send({ code: '', msg: '', data: null });
 				} else {
-					res.status(401).send({ data: data, message: '자격 없음' });
+					res.status(200).send({
+						code: 'SUCCESS',
+						msg: '성공',
+						data: data,
+					});
 				}
+			} else {
+				res.status(401).send({
+					code: '',
+					msg: '자격 없음',
+					data: null,
+				});
 			}
 		} catch (err) {
 			res.status(500).send(err);
