@@ -1,16 +1,14 @@
-import {
-	Get,
-	Injectable,
-	InternalServerErrorException,
-	Post,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { CreateCourseDto } from './dto/createCourse.dto';
 import { CreateLectureDto } from './dto/createLecture.dto';
 import { Course } from './entity/course.entity';
 import { Lecture } from './entity/lecture.entity';
+import { User } from 'src/user/user.entity';
+import { Application } from 'src/application/application.entity';
 import { UserService } from 'src/user/user.service';
+import { ApplicationService } from 'src/application/application.service';
 
 @Injectable()
 export class CourseService {
@@ -22,13 +20,26 @@ export class CourseService {
 		@InjectRepository(Lecture)
 		private readonly lectureRepository: Repository<Lecture>,
 
-		private userService: UserService, // @InjectRepository(User) // private readonly userRepository: Repository<User>,
+		private userService: UserService,
+
+		private applicationService: ApplicationService,
 	) {}
 
 	// 전체 강의 목록 조회
 	async findAllCourses(): Promise<Course[]> {
 		return this.courseRepository
 			.find({
+				select: {
+					id: true,
+					name: true,
+					description: true,
+					createdDate: true,
+					user: {
+						id: true,
+						userId: true,
+						name: true,
+					},
+				},
 				relations: {
 					user: true,
 				},
@@ -42,6 +53,17 @@ export class CourseService {
 	async findCourseById(id: number) {
 		return this.courseRepository
 			.findOne({
+				select: {
+					id: true,
+					name: true,
+					description: true,
+					createdDate: true,
+					user: {
+						id: true,
+						userId: true,
+						name: true,
+					},
+				},
 				where: {
 					id: id,
 				},
@@ -58,6 +80,17 @@ export class CourseService {
 	async findAllCoursesByUserId(uid: string) {
 		return this.courseRepository
 			.find({
+				select: {
+					id: true,
+					name: true,
+					description: true,
+					createdDate: true,
+					user: {
+						id: true,
+						userId: true,
+						name: true,
+					},
+				},
 				where: {
 					user: {
 						userId: uid,
@@ -76,8 +109,21 @@ export class CourseService {
 	async findLectureById(id: number): Promise<Lecture> {
 		return this.lectureRepository
 			.findOne({
+				select: {
+					id: true,
+					title: true,
+					content: true,
+					createdDate: true,
+					course: {
+						id: true,
+						name: true,
+					},
+				},
 				where: {
 					id: id,
+				},
+				relations: {
+					course: true,
 				},
 			})
 			.catch((err) => {
@@ -89,9 +135,29 @@ export class CourseService {
 	async findAllLecturesByCourseId(cid: number): Promise<Lecture[]> {
 		return this.lectureRepository
 			.find({
+				select: {
+					id: true,
+					title: true,
+					createdDate: true,
+					course: {
+						id: true,
+						user: {
+							id: true,
+							userId: true,
+							name: true,
+						},
+						name: true,
+						description: true,
+					},
+				},
 				where: {
 					course: {
 						id: cid,
+					},
+				},
+				relations: {
+					course: {
+						user: true,
 					},
 				},
 			})
@@ -103,7 +169,67 @@ export class CourseService {
 	//수강신청 목록을 조회해봐야함.
 	//다른 service에 넣을까?
 	//학생이 신청한 강의, 게시글 확인
-	async findAllLecturesByUserId(uid: number) {}
+	async findAllLecturesByUserId(uid: number): Promise<Lecture[]> {
+		// userId로 수강신청한 course 목록 뽑아오기
+		const applicationData: Application[] =
+			await this.applicationService.findAllApplicationsById(uid, 'user');
+
+		const courseList: number[] = [];
+
+		await applicationData.map((dt) => {
+			courseList.push(dt.course.id);
+		});
+
+		return await this.lectureRepository
+			.find({
+				select: {
+					id: true,
+					title: true,
+					createdDate: true,
+					course: {
+						id: true,
+						name: true,
+						user: {
+							id: true,
+							name: true,
+						},
+					},
+				},
+				where: {
+					course: {
+						id: In(courseList),
+					},
+				},
+				relations: {
+					course: {
+						user: true,
+					},
+				},
+				order: {
+					createdDate: 'DESC',
+				},
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+	}
+
+	//서비스를 주입받는 서비스 모음을 진지하게 고려해봄..
+	async findAllUsersByCourseId(cid: number): Promise<User[]> {
+		const applicationData: Application[] =
+			await this.applicationService.findAllApplicationsById(
+				cid,
+				'course',
+			);
+
+		const userList: number[] = [];
+
+		await applicationData.map((dt) => {
+			userList.push(dt.user.id);
+		});
+
+		return await this.userService.findAllUsersByIds(userList);
+	}
 
 	// 강의 insert/update/delete는 user가 교수인지 확인해야함.
 	async insertCourse(createCourseDto: CreateCourseDto, userId: string) {

@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	InternalServerErrorException,
 	Param,
 	Post,
 	Query,
@@ -12,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response, Request } from 'express';
+import { ApplicationService } from 'src/application/application.service';
+import { User } from 'src/user/user.entity';
 import { CourseService } from './course.service';
 import { CreateCourseDto } from './dto/createCourse.dto';
 import { CreateLectureDto } from './dto/createLecture.dto';
@@ -20,7 +23,10 @@ import { Lecture } from './entity/lecture.entity';
 
 @Controller('courses')
 export class CourseController {
-	constructor(private courseService: CourseService) {}
+	constructor(
+		private courseService: CourseService,
+		private applicationService: ApplicationService,
+	) {}
 
 	@UseGuards(AuthGuard('jwt'))
 	@Get('/all')
@@ -28,33 +34,7 @@ export class CourseController {
 		try {
 			const data: Course[] = await this.courseService.findAllCourses();
 
-			//console.log(data);
-
 			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
-		} catch (err) {
-			res.status(500).send(err);
-		}
-	}
-
-	@UseGuards(AuthGuard('jwt'))
-	@Get('/:id')
-	async getCourseDetail(
-		@Req() req: Request,
-		@Param('id') id,
-		@Res() res: Response,
-	) {
-		try {
-			const data: Course = await this.courseService.findCourseById(id);
-
-			if (!data) {
-				res.status(404).send({ code: '', msg: '', data: null });
-			} else {
-				res.status(200).send({
-					code: 'SUCCESS',
-					msg: '성공',
-					data: data,
-				});
-			}
 		} catch (err) {
 			res.status(500).send(err);
 		}
@@ -77,16 +57,45 @@ export class CourseController {
 		}
 	}
 
-	// 신청한 사람인지 확인해보고 가져와야 하지 않을까?
 	@UseGuards(AuthGuard('jwt'))
-	@Get('/lectures/:id')
-	async getLectureById(
-		@Req() req: Request,
-		@Param('id') id,
+	@Get('/list/users')
+	async getAllUsersByCourseId(
+		@Req() req,
+		@Query('cid') cid: number,
 		@Res() res: Response,
 	) {
 		try {
-			const data: Lecture = await this.courseService.findLectureById(id);
+			const course: Course = await this.courseService.findCourseById(cid);
+			if (req.user.id == course.user.id) {
+				const data: User[] =
+					await this.courseService.findAllUsersByCourseId(cid);
+
+				res.status(200).send({
+					code: 'SUCCESS',
+					msg: '성공',
+					data: data,
+				});
+			} else {
+				res.status(401).send({
+					code: '',
+					msg: '자격 없음',
+					data: null,
+				});
+			}
+		} catch (err) {
+			res.status(500).send(err);
+		}
+	}
+
+	@UseGuards(AuthGuard('jwt'))
+	@Get('/:id')
+	async getCourseDetail(
+		@Req() req: Request,
+		@Param('id') id: number,
+		@Res() res: Response,
+	) {
+		try {
+			const data: Course = await this.courseService.findCourseById(id);
 
 			if (!data) {
 				res.status(404).send({ code: '', msg: '', data: null });
@@ -96,6 +105,102 @@ export class CourseController {
 					msg: '성공',
 					data: data,
 				});
+			}
+		} catch (err) {
+			res.status(500).send(err);
+		}
+	}
+
+	@UseGuards(AuthGuard('jwt'))
+	@Get('/lectures/list')
+	async getAllLecturesByUserId(
+		@Req() req,
+		@Query('uid') uid: number,
+		@Res() res: Response,
+	) {
+		try {
+			const data: Lecture[] =
+				await this.courseService.findAllLecturesByUserId(uid);
+
+			return { code: 'SUCCESS', msg: '', data: data };
+		} catch (err) {
+			throw new InternalServerErrorException();
+		}
+	}
+
+	// courseDetail은 강의에 대한 정보 - 신청안해도 됨.
+	// lectureList는 신청해야함.
+	@UseGuards(AuthGuard('jwt'))
+	@Get('/lectures/list')
+	async getAllLecturesByCourseId(
+		@Req() req,
+		@Query('cid') cid: number,
+		@Res() res: Response,
+	) {
+		try {
+			const applicationData =
+				await this.applicationService.findApplicationById(
+					req.user.id,
+					cid,
+				);
+
+			if (!applicationData) {
+				res.status(403).send({
+					code: '',
+					msg: '신청하지 않은 강의입니다.',
+					data: null,
+				});
+			} else {
+				const data: Lecture[] =
+					await this.courseService.findAllLecturesByCourseId(cid);
+
+				res.status(200).send({
+					code: 'SUCCESS',
+					msg: '성공',
+					data: data,
+				});
+			}
+		} catch (err) {
+			res.status(500).send(err);
+		}
+	}
+
+	@UseGuards(AuthGuard('jwt'))
+	@Get('/lectures/:id')
+	async getLectureById(
+		@Req() req,
+		@Param('id') id: number,
+		@Res() res: Response,
+	) {
+		try {
+			const data: Lecture = await this.courseService.findLectureById(id);
+
+			if (!data) {
+				res.status(404).send({
+					code: '',
+					msg: '존재하지 않는 강의',
+					data: null,
+				});
+			} else {
+				const applicationData =
+					await this.applicationService.findApplicationById(
+						req.user.id,
+						data.course.id,
+					);
+
+				if (!applicationData) {
+					res.status(403).send({
+						code: '',
+						msg: '신청하지 않은 강의',
+						data: null,
+					});
+				} else {
+					res.status(200).send({
+						code: 'SUCCESS',
+						msg: '성공',
+						data: data,
+					});
+				}
 			}
 		} catch (err) {
 			res.status(500).send(err);

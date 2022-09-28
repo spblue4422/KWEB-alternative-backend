@@ -5,7 +5,7 @@ import {
 	Post,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { User } from './user.entity';
@@ -30,16 +30,44 @@ export class UserService {
 			});
 	}
 
+	async findAllUsersByIds(list: number[]): Promise<User[]> {
+		return await this.userRepository
+			.find({
+				select: {
+					id: true,
+					userId: true,
+					name: true,
+					uniqueNum: true,
+					createdDate: true,
+				},
+				where: {
+					id: In(list),
+				},
+				order: {
+					name: 'ASC',
+				},
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+	}
+
 	//그냥 전체 select하고 controller에서 가공하면 될듯
 	async findUserByUserId(uid: string) {
 		return this.userRepository
 			.findOne({
+				select: {
+					id: true,
+					name: true,
+					userId: true,
+					uniqueNum: true,
+					createdDate: true,
+				},
 				where: {
 					userId: uid,
 				},
 			})
 			.catch((err) => {
-				console.log(12);
 				throw new InternalServerErrorException();
 			});
 	}

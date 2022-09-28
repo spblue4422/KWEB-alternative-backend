@@ -4,6 +4,8 @@ import { UserService } from 'src/user/user.service';
 import { CourseService } from 'src/course/course.service';
 import { Repository } from 'typeorm';
 import { Application } from './application.entity';
+import { User } from 'src/user/user.entity';
+import { Course } from 'src/course/entity/course.entity';
 
 @Injectable()
 export class ApplicationService {
@@ -11,14 +13,32 @@ export class ApplicationService {
 		@InjectRepository(Application)
 		private readonly applicationRepository: Repository<Application>,
 
-		private readonly userService: UserService,
+		@InjectRepository(User)
+		private readonly userRepository: Repository<User>,
 
-		private readonly courseService: CourseService,
+		@InjectRepository(Course)
+		private readonly courseRepository: Repository<Course>, //private readonly userService: UserService, //private readonly courseService: CourseService,
 	) {}
 
-	async findApplication(userId: number, courseId: number) {
-		const data = await this.applicationRepository
+	async findApplicationById(
+		userId: number,
+		courseId: number,
+	): Promise<Application> {
+		return this.applicationRepository
 			.findOne({
+				select: {
+					id: true,
+					user: {
+						id: true,
+						userId: true,
+						name: true,
+					},
+					course: {
+						id: true,
+						name: true,
+					},
+					createdDate: true,
+				},
 				where: {
 					user: {
 						id: userId,
@@ -27,50 +47,103 @@ export class ApplicationService {
 						id: courseId,
 					},
 				},
+				relations: {
+					user: true,
+					course: true,
+				},
 			})
 			.catch((err) => {
 				throw new InternalServerErrorException();
 			});
-
-		return data;
 	}
 
-	async findAllApplicationById(id: number, target: string) {
+	async findAllApplicationsById(
+		id: number,
+		target: string,
+	): Promise<Application[]> {
 		if (target == 'user') {
-			const data = await this.applicationRepository
+			return this.applicationRepository
 				.find({
+					select: {
+						id: true,
+						user: {
+							id: true,
+							userId: true,
+							name: true,
+						},
+						course: {
+							id: true,
+							name: true,
+						},
+						createdDate: true,
+					},
 					where: {
 						user: {
 							id: id,
 						},
 					},
-				})
-				.catch((err) => {
-					throw new InternalServerErrorException();
-				});
-
-			return data;
-		} else {
-			//course
-			const data = await this.applicationRepository
-				.find({
-					where: {
-						course: {
-							id: id,
-						},
+					relations: {
+						user: true,
+						course: true,
 					},
 				})
 				.catch((err) => {
 					throw new InternalServerErrorException();
 				});
-
-			return data;
+		} else {
+			//course
+			return this.applicationRepository
+				.find({
+					select: {
+						id: true,
+						user: {
+							id: true,
+							userId: true,
+							name: true,
+						},
+						course: {
+							id: true,
+							name: true,
+						},
+						createdDate: true,
+					},
+					where: {
+						course: {
+							id: id,
+						},
+					},
+					relations: {
+						user: true,
+						course: true,
+					},
+				})
+				.catch((err) => {
+					throw new InternalServerErrorException();
+				});
 		}
 	}
 
-	async insertApplication(userId: string, courseId: number) {
-		const userData = await this.userService.findUserByUserId(userId);
-		const courseData = await this.courseService.findCourseById(courseId);
+	async insertApplication(userId: number, courseId: number) {
+		//const userData = await this.userService.findUserByUserId(userId);
+		const userData = await this.userRepository
+			.findOne({
+				where: {
+					id: userId,
+				},
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+		const courseData = await this.courseRepository
+			.findOne({
+				where: {
+					id: courseId,
+				},
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+		//const courseData = await this.courseService.findCourseById(courseId);
 
 		if (!userData) {
 			return {
@@ -86,8 +159,8 @@ export class ApplicationService {
 			};
 		}
 
-		const applicationData = await this.findApplication(
-			userData.id,
+		const applicationData = await this.findApplicationById(
+			userId,
 			courseId,
 		);
 
@@ -109,7 +182,10 @@ export class ApplicationService {
 
 	//없으면 삭제 못하는거니까 user, course 확인할 필요는 없을듯
 	async deleteApplication(userId: number, courseId: number) {
-		const applicationData = await this.findApplication(userId, courseId);
+		const applicationData = await this.findApplicationById(
+			userId,
+			courseId,
+		);
 		if (!applicationData) {
 			return { code: '', msg: '신청하지 않은 강의입니다.', data: null };
 		}

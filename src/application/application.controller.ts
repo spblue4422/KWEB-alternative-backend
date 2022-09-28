@@ -28,14 +28,18 @@ export class ApplicationController {
 		@Res() res: Response,
 	) {
 		try {
-			const data = await this.applicationService.insertApplication(
-				req.user.userId,
-				cid,
-			);
+			if (req.user.status != 'student') {
+				res.status(401).send({ code: '', msg: '자격없음', data: null });
+			} else {
+				const data = await this.applicationService.insertApplication(
+					req.user.id,
+					cid,
+				);
 
-			return data;
+				res.status(200).send({ data: data });
+			}
 		} catch (err) {
-			throw new InternalServerErrorException();
+			res.status(500).send(err);
 		}
 	}
 
@@ -47,8 +51,18 @@ export class ApplicationController {
 		@Res() res: Response,
 	) {
 		try {
+			if (req.user.status != 'student') {
+				res.status(401).send({ code: '', msg: '자격없음', data: null });
+			} else {
+				const data = await this.applicationService.deleteApplication(
+					req.user.id,
+					cid,
+				);
+
+				res.status(200).send({ data: data });
+			}
 		} catch (err) {
-			throw new InternalServerErrorException();
+			res.status(500).send(err);
 		}
 	}
 }
