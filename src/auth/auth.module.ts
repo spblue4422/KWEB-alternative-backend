@@ -14,8 +14,8 @@ import { JwtStrategy } from './jwt.strategy';
 		TypeOrmModule.forFeature([User]),
 		PassportModule,
 		JwtModule.register({
-			secret: 'jwt secret key',
-			signOptions: { expiresIn: 3600 },
+			secret: '4422spblue',
+			signOptions: { expiresIn: 1800 },
 		}),
 	],
 	controllers: [AuthController],

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
+import { genSalt, hash } from 'bcrypt';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { User } from './user.entity';
@@ -17,6 +18,7 @@ export class UserService {
 		private readonly userRepository: Repository<User>,
 	) {}
 
+	// 전체 유저 조회
 	async findAllUsers() {
 		return this.userRepository
 			.find({
@@ -30,6 +32,7 @@ export class UserService {
 			});
 	}
 
+	// 유저들 조회
 	async findAllUsersByIds(list: number[]): Promise<User[]> {
 		return await this.userRepository
 			.find({
@@ -52,7 +55,7 @@ export class UserService {
 			});
 	}
 
-	//그냥 전체 select하고 controller에서 가공하면 될듯
+	// 유저 조회
 	async findUserByUserId(uid: string) {
 		return this.userRepository
 			.findOne({
@@ -99,27 +102,36 @@ export class UserService {
 		}
 	}
 
+	// 유저 추가
+	// 근데 이렇게 isuniqueinfo 만들어서 쓰는거보다 그냥 find해서 찾는게 코드가 더 줄지 않을까?
 	async insertUser(createUserDto: CreateUserDto) {
 		const { userId, password, name, uniqueNum, status } = createUserDto;
 		const r1 = await this.isUniqueInfo('userId', userId);
 		if (r1) {
 			console.log(r1);
-			return { code: 'FAIL', msg: '중복 ID입니다.', dt: r1 };
+			return { code: 'FAIL', msg: '중복 ID입니다.', data: r1 };
 		}
 
 		const r2 = await this.isUniqueInfo('uniqueNum', uniqueNum);
 		if (r2) {
-			return { code: 'FAIL', msg: '중복 학번입니다.', dt: r2 };
+			return { code: 'FAIL', msg: '중복 학번입니다.', data: r2 };
 		}
 
 		if (status !== 'student' && status !== 'professor') {
-			return { code: 'FAIL', msg: '잘못된 상태 정보 입니다.' };
+			return {
+				code: 'FAIL',
+				msg: '잘못된 상태 정보 입니다.',
+				data: null,
+			};
 		}
 
-		await this.userRepository
+		const salt = await genSalt(10);
+		const hs = await hash(password, salt);
+
+		const result = await this.userRepository
 			.insert({
 				userId: userId,
-				password: password,
+				password: hs,
 				name: name,
 				uniqueNum: uniqueNum,
 				status: status,
@@ -128,25 +140,32 @@ export class UserService {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', msg: '유저 정보 추가에 성공했습니다.' };
+		return {
+			code: 'SUCCESS',
+			msg: '유저 정보 추가에 성공했습니다.',
+			data: result,
+		};
 	}
 
-	//어드민 계정이 있을 수 있기 때문에, 실제 있는 계정인지 확인은 있어야 하지 않을까.
-	async updateUser(uid: string, updateUserDto: UpdateUserDto) {
+	// 유저 정보 업데이트
+	// 유저 여부 검증은 controller에서 하고 내려올것
+	async updateUser(id: number, updateUserDto: UpdateUserDto) {
 		const { name, password, status } = updateUserDto;
-		const data = await this.findUserByUserId(uid);
-
-		if (!data) {
-			return { code: 'FAIL', msg: '존재하지 않는 ID입니다.' };
-		}
 
 		if (status !== 'student' && status !== 'professor') {
-			return { code: 'FAIL', msg: '잘못된 상태 정보 입니다.' };
+			return {
+				code: 'FAIL',
+				msg: '잘못된 상태 정보 입니다.',
+				data: null,
+			};
 		}
 
-		await this.userRepository
-			.update(data.id, {
-				password: password,
+		const salt = await genSalt(10);
+		const hs = await hash(password, salt);
+
+		const result = await this.userRepository
+			.update(id, {
+				password: hs,
 				name: name,
 				status: status,
 			})
@@ -154,21 +173,27 @@ export class UserService {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', msg: '유저 정보 변경에 성공했습니다.' };
+		return {
+			code: 'SUCCESS',
+			msg: '유저 정보 변경에 성공했습니다.',
+			data: result,
+		};
 	}
 
 	// 삭제와 동시에 로그아웃 되어야함.
-	async deleteUser(uid: string) {
-		const data = await this.findUserByUserId(uid);
+	// 마찬가지로 controller에서 검증하고 내려옴
+	// 일단 해보고 안되면 그다음에 트랜잭션 걸자.
+	async deleteUser(userData: User) {
+		const result = await this.userRepository
+			.remove(userData)
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
 
-		if (!data) {
-			return { code: 'FAIL', msg: '존재하지 않는 ID입니다.' };
-		}
-
-		await this.userRepository.delete(data.id).catch((err) => {
-			throw new InternalServerErrorException();
-		});
-
-		return { code: 'SUCCESS', msg: '유저 정보 삭제에 성공했습니다.' };
+		return {
+			code: 'SUCCESS',
+			msg: '유저 정보 삭제에 성공했습니다.',
+			data: result,
+		};
 	}
 }

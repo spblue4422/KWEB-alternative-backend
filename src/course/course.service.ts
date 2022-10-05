@@ -12,7 +12,6 @@ import { ApplicationService } from 'src/application/application.service';
 
 @Injectable()
 export class CourseService {
-	//constructor(private readonly lectureRepository: LectureRepository) {}
 	constructor(
 		@InjectRepository(Course)
 		private readonly courseRepository: Repository<Course>,
@@ -25,7 +24,7 @@ export class CourseService {
 		private applicationService: ApplicationService,
 	) {}
 
-	// 전체 강의 목록 조회
+	// 전체 코스 목록 조회
 	async findAllCourses(): Promise<Course[]> {
 		return this.courseRepository
 			.find({
@@ -49,7 +48,7 @@ export class CourseService {
 			});
 	}
 
-	// 강의 조회 - 강의 id => password도 같이 나오는거 아닌가??
+	// 코스 조회
 	async findCourseById(id: number) {
 		return this.courseRepository
 			.findOne({
@@ -76,7 +75,7 @@ export class CourseService {
 			});
 	}
 
-	// 강의 목록 조회 - 게시자 id
+	// 코스 목록 조회 - 게시자 id
 	async findAllCoursesByUserId(uid: string) {
 		return this.courseRepository
 			.find({
@@ -105,7 +104,7 @@ export class CourseService {
 			});
 	}
 
-	// 강의 게시글 조회 - 게시글 id
+	// 강의 조회 - 게시글 id
 	async findLectureById(id: number): Promise<Lecture> {
 		return this.lectureRepository
 			.findOne({
@@ -131,7 +130,7 @@ export class CourseService {
 			});
 	}
 
-	// 강의 게시글 목록 조회 - 강의 id
+	// 강의 목록 조회 - 강의 id
 	async findAllLecturesByCourseId(cid: number): Promise<Lecture[]> {
 		return this.lectureRepository
 			.find({
@@ -166,22 +165,69 @@ export class CourseService {
 			});
 	}
 
-	//수강신청 목록을 조회해봐야함.
-	//다른 service에 넣을까?
-	//학생이 신청한 강의, 게시글 확인
-	async findAllLecturesByUserId(uid: number): Promise<Lecture[]> {
+	// 학생이 신청한 코스의 모든 강의 확인
+	// 교수가 개설한 코스의 모든 강의 확인
+	async findAllLecturesByUserId(
+		status: string,
+		uid: number,
+		userId: string,
+	): Promise<Lecture[]> {
 		// userId로 수강신청한 course 목록 뽑아오기
-		const applicationData: Application[] =
-			await this.applicationService.findAllApplicationsById(uid, 'user');
+		if (status == 'student') {
+			const applicationData: Application[] =
+				await this.applicationService.findAllApplicationsById(
+					uid,
+					'user',
+				);
 
-		const courseList: number[] = [];
+			const courseList: number[] = [];
 
-		await applicationData.map((dt) => {
-			courseList.push(dt.course.id);
-		});
+			await applicationData.map((dt) => {
+				courseList.push(dt.course.id);
+			});
 
-		return await this.lectureRepository
-			.find({
+			return this.lectureRepository
+				.find({
+					select: {
+						id: true,
+						title: true,
+						createdDate: true,
+						course: {
+							id: true,
+							name: true,
+							user: {
+								id: true,
+								name: true,
+							},
+						},
+					},
+					where: {
+						course: {
+							id: In(courseList),
+						},
+					},
+					relations: {
+						course: {
+							user: true,
+						},
+					},
+					order: {
+						createdDate: 'DESC',
+					},
+				})
+				.catch((err) => {
+					throw new InternalServerErrorException();
+				});
+		} else {
+			const courseData = await this.findAllCoursesByUserId(userId);
+
+			const courseList: number[] = [];
+
+			await courseData.map((dt) => {
+				courseList.push(dt.id);
+			});
+
+			return this.lectureRepository.find({
 				select: {
 					id: true,
 					title: true,
@@ -189,10 +235,6 @@ export class CourseService {
 					course: {
 						id: true,
 						name: true,
-						user: {
-							id: true,
-							name: true,
-						},
 					},
 				},
 				where: {
@@ -201,20 +243,17 @@ export class CourseService {
 					},
 				},
 				relations: {
-					course: {
-						user: true,
-					},
+					course: true,
 				},
 				order: {
 					createdDate: 'DESC',
 				},
-			})
-			.catch((err) => {
-				throw new InternalServerErrorException();
 			});
+		}
 	}
 
-	//서비스를 주입받는 서비스 모음을 진지하게 고려해봄..
+	// 서비스를 주입받는 서비스 모음을 진지하게 고려해봄..
+	// 코스를 신청한 모든 학생 조회
 	async findAllUsersByCourseId(cid: number): Promise<User[]> {
 		const applicationData: Application[] =
 			await this.applicationService.findAllApplicationsById(
@@ -231,14 +270,9 @@ export class CourseService {
 		return await this.userService.findAllUsersByIds(userList);
 	}
 
-	// 강의 insert/update/delete는 user가 교수인지 확인해야함.
-	async insertCourse(createCourseDto: CreateCourseDto, userId: string) {
+	// 코스 추가
+	async insertCourse(createCourseDto: CreateCourseDto, userData: User) {
 		const { name, description } = createCourseDto;
-		const userData = await this.userService.findUserByUserId(userId);
-
-		if (!userData) {
-			return { code: '', msg: '없는 유저입니다.', data: null };
-		}
 
 		const courseData = await this.courseRepository.findOne({
 			where: {
@@ -246,11 +280,12 @@ export class CourseService {
 			},
 		});
 
+		//name과 description의 sql injection을 검사해봐야함.
 		if (courseData != null) {
-			return { code: '', msg: '중복된 강의명입니다.', data: null };
+			return { code: '', msg: '중복된 코스명입니다.', data: null };
 		}
 
-		await this.courseRepository
+		const result = await this.courseRepository
 			.insert({
 				user: userData,
 				name: name,
@@ -260,21 +295,54 @@ export class CourseService {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', msg: '강의 정보 추가에 성공했습니다.' };
+		return {
+			code: 'SUCCESS',
+			msg: '코스 추가에 성공했습니다.',
+			data: result,
+		};
 	}
 
-	async updateCourse() {}
+	async updateCourse(id: number, createCourseDto: CreateCourseDto) {
+		const { name, description } = createCourseDto;
+
+		const result = await this.courseRepository
+			.update(id, {
+				name: name,
+				description: description,
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+
+		return {
+			code: 'SUCCESS',
+			msg: '코스 정보 변경에 성공했습니다.',
+			data: result,
+		};
+	}
 
 	//코스 삭제시 강의 게시글도 같이 삭제되어야함.
-	async deleteCourse(courseData: Course) {}
+	async deleteCourse(courseData: Course) {
+		const result = await this.courseRepository
+			.remove(courseData)
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+
+		return {
+			code: 'SUCCESS',
+			msg: '코스 삭제에 성공했습니다.',
+			data: result,
+		};
+	}
 
 	async insertLecture(
 		createLectureDto: CreateLectureDto,
 		courseData: Course,
 	) {
-		const { courseId, title, content } = createLectureDto;
+		const { title, content } = createLectureDto;
 
-		await this.lectureRepository
+		const result = await this.lectureRepository
 			.insert({
 				course: courseData,
 				title: title,
@@ -284,16 +352,50 @@ export class CourseService {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', msg: '강의 게시물 추가에 성공했습니다.' };
+		return {
+			code: 'SUCCESS',
+			msg: '강의 추가에 성공했습니다.',
+			data: result,
+		};
 	}
 
-	async updateLecture() {}
+	async updateLecture(
+		id: number,
+		createLectureDto: CreateLectureDto,
+		courseData: Course,
+	) {
+		const { title, content } = createLectureDto;
+
+		const result = await this.lectureRepository
+			.update(id, {
+				course: courseData,
+				title: title,
+				content: content,
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+
+		return {
+			code: 'SUCCESS',
+			msg: '강의 정보 변경에 성공했습니다.',
+			data: result,
+		};
+	}
 
 	async deleteLecture(lectureData: Lecture) {
-		await this.lectureRepository.remove(lectureData).catch((err) => {
-			throw new InternalServerErrorException();
-		});
+		//const id = lectureData.id;
 
-		return { code: 'SUCCESS', msg: '강의 게시물 삭제에 성공했습니다.' };
+		const result = await this.lectureRepository
+			.remove(lectureData)
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+
+		return {
+			code: 'SUCCESS',
+			msg: '강의 삭제에 성공했습니다.',
+			data: result,
+		};
 	}
 }

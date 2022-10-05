@@ -20,8 +20,9 @@ export class ApplicationService {
 		private readonly courseRepository: Repository<Course>, //private readonly userService: UserService, //private readonly courseService: CourseService,
 	) {}
 
+	// 신청 조회
 	async findApplicationById(
-		userId: number,
+		id: number,
 		courseId: number,
 	): Promise<Application> {
 		return this.applicationRepository
@@ -41,7 +42,7 @@ export class ApplicationService {
 				},
 				where: {
 					user: {
-						id: userId,
+						id: id,
 					},
 					course: {
 						id: courseId,
@@ -57,6 +58,7 @@ export class ApplicationService {
 			});
 	}
 
+	// 유저/코스 별 신청 상황 조회
 	async findAllApplicationsById(
 		id: number,
 		target: string,
@@ -91,7 +93,6 @@ export class ApplicationService {
 					throw new InternalServerErrorException();
 				});
 		} else {
-			//course
 			return this.applicationRepository
 				.find({
 					select: {
@@ -123,12 +124,12 @@ export class ApplicationService {
 		}
 	}
 
-	async insertApplication(userId: number, courseId: number) {
-		//const userData = await this.userService.findUserByUserId(userId);
+	// 수강신청
+	async insertApplication(id: number, courseId: number) {
 		const userData = await this.userRepository
 			.findOne({
 				where: {
-					id: userId,
+					id: id,
 				},
 			})
 			.catch((err) => {
@@ -143,7 +144,6 @@ export class ApplicationService {
 			.catch((err) => {
 				throw new InternalServerErrorException();
 			});
-		//const courseData = await this.courseService.findCourseById(courseId);
 
 		if (!userData) {
 			return {
@@ -159,16 +159,13 @@ export class ApplicationService {
 			};
 		}
 
-		const applicationData = await this.findApplicationById(
-			userId,
-			courseId,
-		);
+		const applicationData = await this.findApplicationById(id, courseId);
 
 		if (applicationData != null) {
 			return { code: '', msg: '이미 신청된 강의입니다', data: null };
 		}
 
-		await this.applicationRepository
+		const result = await this.applicationRepository
 			.insert({
 				user: userData,
 				course: courseData,
@@ -177,25 +174,30 @@ export class ApplicationService {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', msg: '수강신청에 성공했습니다.' };
+		return {
+			code: 'SUCCESS',
+			msg: '수강신청에 성공했습니다.',
+			data: result,
+		};
 	}
 
 	//없으면 삭제 못하는거니까 user, course 확인할 필요는 없을듯
-	async deleteApplication(userId: number, courseId: number) {
-		const applicationData = await this.findApplicationById(
-			userId,
-			courseId,
-		);
+	async deleteApplication(id: number, courseId: number) {
+		const applicationData = await this.findApplicationById(id, courseId);
 		if (!applicationData) {
 			return { code: '', msg: '신청하지 않은 강의입니다.', data: null };
 		}
 
-		await this.applicationRepository
+		const result = await this.applicationRepository
 			.remove(applicationData)
 			.catch((err) => {
 				throw new InternalServerErrorException();
 			});
 
-		return { code: 'SUCCESS', msg: '신청 삭제에 성공했습니다.' };
+		return {
+			code: 'SUCCESS',
+			msg: '신청 삭제에 성공했습니다.',
+			data: result,
+		};
 	}
 }
