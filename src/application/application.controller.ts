@@ -14,10 +14,11 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { Response, Request } from 'express';
 import { ApplicationService } from './application.service';
-import { Application } from './application.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Course } from 'src/course/entity/course.entity';
 import { Repository } from 'typeorm';
+import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
+import { ResultResponseDto } from 'src/util/resultResponseDto';
 
 @Controller('application')
 export class ApplicationController {
@@ -31,6 +32,14 @@ export class ApplicationController {
 	// 학생 - 수강신청
 	@UseGuards(AuthGuard('jwt'))
 	@Post('/add')
+	@ApiOperation({
+		summary: '수강 신청 API',
+		description: '수강 신청 추가',
+	})
+	@ApiCreatedResponse({
+		description: '수강 신청 추가',
+		type: ResultResponseDto,
+	})
 	async addApplication(
 		@Req() req,
 		@Body() cid: number,
@@ -55,6 +64,14 @@ export class ApplicationController {
 	// 학생 - 수강신청 취소
 	@UseGuards(AuthGuard('jwt'))
 	@Delete('/delete')
+	@ApiOperation({
+		summary: '수강 취소 API',
+		description: '수강 취소 추가',
+	})
+	@ApiCreatedResponse({
+		description: '수강 취소 추가',
+		type: ResultResponseDto,
+	})
 	async removeApplication(
 		@Req() req,
 		@Query('cid') cid: number,
@@ -79,6 +96,14 @@ export class ApplicationController {
 	// 교수 - 자신 코스 신청한 학생 드롭
 	@UseGuards(AuthGuard('jwt'))
 	@Delete('/drop')
+	@ApiOperation({
+		summary: '수강 금지 API',
+		description: '수강 금지 추가',
+	})
+	@ApiCreatedResponse({
+		description: '수강 금지 추가',
+		type: ResultResponseDto,
+	})
 	async dropApplication(
 		@Req() req,
 		@Query('uid') uid: number,

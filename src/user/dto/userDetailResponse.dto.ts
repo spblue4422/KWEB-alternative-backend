@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsNumber, IsDate } from 'class-validator';
 
-export class CreateUserDto {
+export class UserDetailResponseDto {
+	@IsNumber()
+	@ApiProperty({ description: 'id' })
+	id: number;
+
 	@IsString()
 	@ApiProperty({ description: '로그인 계정' })
 	userId: string;
-
-	@IsString()
-	@ApiProperty({ description: '비밀번호' })
-	password: string;
 
 	@IsString()
 	@ApiProperty({ description: '이름' })
@@ -18,7 +18,7 @@ export class CreateUserDto {
 	@ApiProperty({ description: '학번/교번' })
 	uniqueNum: string;
 
-	@IsString()
-	@ApiProperty({ description: '상태' })
-	status: string;
+	@IsDate()
+	@ApiProperty({ description: '등록 일자' })
+	createdDate: Date;
 }
