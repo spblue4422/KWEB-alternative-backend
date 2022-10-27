@@ -14,6 +14,7 @@ const fromAuthCookie = function () {
 	};
 };
 
+// jwt 토큰이 정상적인지 확인, 유저의 정보확인은 하지 않음
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
 	constructor() {

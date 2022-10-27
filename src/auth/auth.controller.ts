@@ -13,7 +13,11 @@ export class AuthController {
 	async login(@Req() req, @Res({ passthrough: true }) res: Response) {
 		const data = await this.authService.userLogin(req.user);
 		const token = data.token;
-		await res.cookie('Authorization', token);
+		await res.cookie('Authorization', token, {
+			sameSite: 'none',
+			secure: true,
+			domain: 'localhost',
+		});
 
 		return data;
 	}

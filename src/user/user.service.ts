@@ -109,17 +109,25 @@ export class UserService {
 		const r1 = await this.isUniqueInfo('userId', userId);
 		if (r1) {
 			console.log(r1);
-			return { code: 'FAIL', msg: '중복 ID입니다.', data: r1 };
+			return {
+				code: 'FAIL_ID_DUPLICATION',
+				msg: '중복 ID입니다.',
+				data: r1,
+			};
 		}
 
 		const r2 = await this.isUniqueInfo('uniqueNum', uniqueNum);
 		if (r2) {
-			return { code: 'FAIL', msg: '중복 학번입니다.', data: r2 };
+			return {
+				code: 'FAIL_UN_DUPLICATION',
+				msg: '중복 학번입니다.',
+				data: r2,
+			};
 		}
 
 		if (status !== 'student' && status !== 'professor') {
 			return {
-				code: 'FAIL',
+				code: 'FAIL_STATUS_ERR',
 				msg: '잘못된 상태 정보 입니다.',
 				data: null,
 			};

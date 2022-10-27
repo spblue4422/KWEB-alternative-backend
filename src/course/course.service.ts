@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Like } from 'typeorm';
 import { CreateCourseDto } from './dto/createCourse.dto';
 import { CreateLectureDto } from './dto/createLecture.dto';
 import { Course } from './entity/course.entity';
@@ -31,8 +31,6 @@ export class CourseService {
 				select: {
 					id: true,
 					name: true,
-					description: true,
-					createdDate: true,
 					user: {
 						id: true,
 						userId: true,
@@ -82,8 +80,6 @@ export class CourseService {
 				select: {
 					id: true,
 					name: true,
-					description: true,
-					createdDate: true,
 					user: {
 						id: true,
 						userId: true,
@@ -94,6 +90,31 @@ export class CourseService {
 					user: {
 						userId: uid,
 					},
+				},
+				relations: {
+					user: true,
+				},
+			})
+			.catch((err) => {
+				throw new InternalServerErrorException();
+			});
+	}
+
+	// 코스 검색
+	async findAllCoursesBySearch(text: string) {
+		return this.courseRepository
+			.find({
+				select: {
+					id: true,
+					name: true,
+					user: {
+						id: true,
+						userId: true,
+						name: true,
+					},
+				},
+				where: {
+					name: Like(`%${text}%`),
 				},
 				relations: {
 					user: true,
@@ -130,7 +151,7 @@ export class CourseService {
 			});
 	}
 
-	// 강의 목록 조회 - 강의 id
+	// 강의 목록 조회 - 코스 id
 	async findAllLecturesByCourseId(cid: number): Promise<Lecture[]> {
 		return this.lectureRepository
 			.find({
@@ -140,13 +161,6 @@ export class CourseService {
 					createdDate: true,
 					course: {
 						id: true,
-						user: {
-							id: true,
-							userId: true,
-							name: true,
-						},
-						name: true,
-						description: true,
 					},
 				},
 				where: {
@@ -155,9 +169,7 @@ export class CourseService {
 					},
 				},
 				relations: {
-					course: {
-						user: true,
-					},
+					course: {},
 				},
 			})
 			.catch((err) => {
@@ -197,6 +209,7 @@ export class CourseService {
 							name: true,
 							user: {
 								id: true,
+								userId: true,
 								name: true,
 							},
 						},

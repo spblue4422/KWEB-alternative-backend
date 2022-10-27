@@ -46,6 +46,7 @@ export class UserController {
 	}
 
 	// 본인 정보 확인 / 교수의 학생 정보 확인
+	// 현재 교수의 교수 정보 확인 가능 - 이거 맞나
 	@UseGuards(AuthGuard('jwt'))
 	@Get('/:uid')
 	@ApiOperation({
@@ -108,7 +109,7 @@ export class UserController {
 
 			res.status(200).send(data);
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({ code: 'ERR', msg: '서버 에러', data: err });
 		}
 	}
 

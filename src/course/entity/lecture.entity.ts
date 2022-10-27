@@ -16,7 +16,7 @@ export class Lecture {
 	id: number;
 
 	@ManyToOne((type) => Course, { onDelete: 'CASCADE', nullable: false })
-	@JoinColumn({ name: 'lecture' })
+	@JoinColumn({ name: 'course' })
 	@ApiProperty({ description: 'course' })
 	course: Course;
 

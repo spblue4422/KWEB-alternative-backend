@@ -54,6 +54,34 @@ export class CourseController {
 		}
 	}
 
+	//검색 기능 추가
+	@UseGuards(AuthGuard('jwt'))
+	@Post('/list/search')
+	@ApiOperation({
+		summary: '코스 검색 API',
+		description: '코스 검색',
+	})
+	@ApiCreatedResponse({
+		description: '코스 검색',
+		type: Course,
+	})
+	async getAllCoursesBySearch(
+		@Req() req,
+		@Body() text,
+		@Res() res: Response,
+	) {
+		try {
+			const data: Course[] =
+				await this.courseService.findAllCoursesBySearch(
+					text.searchText,
+				);
+
+			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
+		} catch (err) {
+			res.status(500).send(err);
+		}
+	}
+
 	// 교수 아이디로 코스 목록 조회
 	@UseGuards(AuthGuard('jwt'))
 	@Get('/list')
@@ -181,6 +209,7 @@ export class CourseController {
 	}
 
 	// 코스별 강의 목록 조회
+	// 단순 목록 조회인데 신청여부는 신경안써도 되지않을까
 	@UseGuards(AuthGuard('jwt'))
 	@Get('/lectures/list')
 	@ApiOperation({

@@ -17,6 +17,7 @@ async function bootstrap() {
 
 	app.use(cookieParser());
 	setUpSwagger(app);
+	app.enableCors({ origin: 'http://localhost:3210', credentials: true });
 
 	await app.listen(3000);
 }
