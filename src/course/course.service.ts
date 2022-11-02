@@ -73,8 +73,20 @@ export class CourseService {
 			});
 	}
 
+	async findAllCoursesByUserId(id: number) {
+		const applicationData: Application[] =
+			await this.applicationService.findAllApplicationsById(id, 'user');
+		const courseList: Course[] = [];
+
+		await applicationData.map((dt) => {
+			courseList.push(dt.course);
+		});
+
+		return courseList;
+	}
+
 	// 코스 목록 조회 - 게시자 id
-	async findAllCoursesByUserId(uid: string) {
+	async findAllCoursesByProfId(id: number) {
 		return this.courseRepository
 			.find({
 				select: {
@@ -88,7 +100,7 @@ export class CourseService {
 				},
 				where: {
 					user: {
-						userId: uid,
+						id: id,
 					},
 				},
 				relations: {
@@ -137,13 +149,20 @@ export class CourseService {
 					course: {
 						id: true,
 						name: true,
+						user: {
+							id: true,
+							userId: true,
+							name: true,
+						},
 					},
 				},
 				where: {
 					id: id,
 				},
 				relations: {
-					course: true,
+					course: {
+						user: true,
+					},
 				},
 			})
 			.catch((err) => {
@@ -181,21 +200,15 @@ export class CourseService {
 	// 교수가 개설한 코스의 모든 강의 확인
 	async findAllLecturesByUserId(
 		status: string,
-		uid: number,
-		userId: string,
+		id: number,
 	): Promise<Lecture[]> {
 		// userId로 수강신청한 course 목록 뽑아오기
 		if (status == 'student') {
-			const applicationData: Application[] =
-				await this.applicationService.findAllApplicationsById(
-					uid,
-					'user',
-				);
+			const idArr: number[] = [];
+			const data: Course[] = await this.findAllCoursesByUserId(id);
 
-			const courseList: number[] = [];
-
-			await applicationData.map((dt) => {
-				courseList.push(dt.course.id);
+			await data.map((dt) => {
+				idArr.push(dt.id);
 			});
 
 			return this.lectureRepository
@@ -216,7 +229,7 @@ export class CourseService {
 					},
 					where: {
 						course: {
-							id: In(courseList),
+							id: In(idArr),
 						},
 					},
 					relations: {
@@ -232,36 +245,6 @@ export class CourseService {
 					throw new InternalServerErrorException();
 				});
 		} else {
-			const courseData = await this.findAllCoursesByUserId(userId);
-
-			const courseList: number[] = [];
-
-			await courseData.map((dt) => {
-				courseList.push(dt.id);
-			});
-
-			return this.lectureRepository.find({
-				select: {
-					id: true,
-					title: true,
-					createdDate: true,
-					course: {
-						id: true,
-						name: true,
-					},
-				},
-				where: {
-					course: {
-						id: In(courseList),
-					},
-				},
-				relations: {
-					course: true,
-				},
-				order: {
-					createdDate: 'DESC',
-				},
-			});
 		}
 	}
 
@@ -295,7 +278,11 @@ export class CourseService {
 
 		//name과 description의 sql injection을 검사해봐야함.
 		if (courseData != null) {
-			return { code: '', msg: '중복된 코스명입니다.', data: null };
+			return {
+				code: 'FAIL_COURSENAME_DUPLICATION',
+				msg: '중복된 코스명입니다.',
+				data: null,
+			};
 		}
 
 		const result = await this.courseRepository
@@ -397,8 +384,6 @@ export class CourseService {
 	}
 
 	async deleteLecture(lectureData: Lecture) {
-		//const id = lectureData.id;
-
 		const result = await this.lectureRepository
 			.remove(lectureData)
 			.catch((err) => {

@@ -24,6 +24,7 @@ import { CreateLectureDto } from './dto/createLecture.dto';
 import { Course } from './entity/course.entity';
 import { Lecture } from './entity/lecture.entity';
 import { UserDetailResponseDto } from 'src/user/dto/userDetailResponse.dto';
+import { Application } from 'src/application/application.entity';
 
 @Controller('courses')
 export class CourseController {
@@ -50,7 +51,11 @@ export class CourseController {
 
 			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -78,35 +83,89 @@ export class CourseController {
 
 			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
+		}
+	}
+
+	//신청 코스 조회
+	@UseGuards(AuthGuard('jwt'))
+	@ApiOperation({
+		summary: '신청/개설 코스 목록 조회 API',
+		description: '신청/개설 코스 목록 조회',
+	})
+	@ApiCreatedResponse({
+		description: '신청/개설 코스 목록 조회',
+		type: Course,
+	})
+	@Get('/list/my')
+	async getAllCoursesByUserId(@Req() req, @Res() res: Response) {
+		try {
+			if (req.user.status == 'student') {
+				//학생일때
+				const data: Course[] =
+					await this.courseService.findAllCoursesByUserId(
+						req.user.id,
+					);
+
+				res.status(200).send({
+					code: 'SUCCESS',
+					msg: '성공',
+					data: data,
+				});
+			} else {
+				//교수일때
+				const data: Course[] =
+					await this.courseService.findAllCoursesByProfId(
+						req.user.id,
+					);
+				res.status(200).send({
+					code: 'SUCCESS',
+					msg: '성공',
+					data: data,
+				});
+			}
+		} catch (err) {
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
 	// 교수 아이디로 코스 목록 조회
-	@UseGuards(AuthGuard('jwt'))
-	@Get('/list')
-	@ApiOperation({
-		summary: '게시자 ID로 코스 조회 API',
-		description: '게시자 ID로 코스 조회',
-	})
-	@ApiCreatedResponse({
-		description: '게시자 ID로 코스 조회',
-		type: Course,
-	})
-	async getAllCoursesByProfId(
-		@Req() req: Request,
-		@Query('uid') uid: string,
-		@Res() res: Response,
-	) {
-		try {
-			const data: Course[] =
-				await this.courseService.findAllCoursesByUserId(uid);
+	// @UseGuards(AuthGuard('jwt'))
+	// @Get('/list')
+	// @ApiOperation({
+	// 	summary: '게시자 ID로 코스 조회 API',
+	// 	description: '게시자 ID로 코스 조회',
+	// })
+	// @ApiCreatedResponse({
+	// 	description: '게시자 ID로 코스 조회',
+	// 	type: Course,
+	// })
+	// async getAllCoursesByProfId(
+	// 	@Req() req: Request,
+	// 	@Query('uid') uid: string,
+	// 	@Res() res: Response,
+	// ) {
+	// 	try {
+	// 		const data: Course[] =
+	// 			await this.courseService.findAllCoursesByProfId(uid);
 
-			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
-		} catch (err) {
-			res.status(500).send(err);
-		}
-	}
+	// 		res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
+	// 	} catch (err) {
+	// 		res.status(500).send({
+	// 			code: 'ERR_500',
+	// 			msg: '서버 에러',
+	// 			data: err,
+	// 		});
+	// 	}
+	// }
 
 	// 코스별 신청 유저 확인
 	@UseGuards(AuthGuard('jwt'))
@@ -136,14 +195,18 @@ export class CourseController {
 					data: data,
 				});
 			} else {
-				res.status(401).send({
-					code: '',
+				res.status(402).send({
+					code: 'ERR_402',
 					msg: '자격 없음',
 					data: null,
 				});
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -159,24 +222,58 @@ export class CourseController {
 		type: Course,
 	})
 	async getCourseDetail(
-		@Req() req: Request,
+		@Req() req,
 		@Param('id') id: number,
 		@Res() res: Response,
 	) {
 		try {
 			const data: Course = await this.courseService.findCourseById(id);
+			const aData: Application =
+				await this.applicationService.findApplicationById(
+					req.user.id,
+					id,
+				);
 
 			if (!data) {
-				res.status(404).send({ code: '', msg: '', data: null });
-			} else {
+				res.status(404).send({
+					code: 'ERR_404',
+					msg: '데이터가 존재하지 않음',
+					data: null,
+				});
+			} else if (req.user.id == data.user.id) {
+				//교수 본인 코스
 				res.status(200).send({
 					code: 'SUCCESS',
 					msg: '성공',
 					data: data,
+					self: 1,
+					apc: 0,
+				});
+			} else if (aData) {
+				//학생이 신청한 코스
+				res.status(200).send({
+					code: 'SUCCESS',
+					msg: '성공',
+					data: data,
+					self: 0,
+					apc: 1,
+				});
+			} else {
+				//개설한 본인도 아니고, 신청한 학생도 아닌 경우
+				res.status(200).send({
+					code: 'SUCCESS',
+					msg: '성공',
+					data: data,
+					self: 0,
+					apc: 0,
 				});
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -199,25 +296,27 @@ export class CourseController {
 				await this.courseService.findAllLecturesByUserId(
 					req.user.status,
 					req.user.id,
-					req.user.userId,
 				);
 
-			res.status(200).send({ code: 'SUCCESS', msg: '', data: data });
+			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
 	// 코스별 강의 목록 조회
-	// 단순 목록 조회인데 신청여부는 신경안써도 되지않을까
 	@UseGuards(AuthGuard('jwt'))
 	@Get('/lectures/list')
 	@ApiOperation({
-		summary: '코스 강의 목록 조회 API',
-		description: '코스 강의 목록 조회',
+		summary: '코스별 강의 목록 조회 API',
+		description: '코스별 강의 목록 조회',
 	})
 	@ApiCreatedResponse({
-		description: '코스 강의 목록 조회',
+		description: '코스별 강의 목록 조회',
 		type: Lecture,
 	})
 	async getAllLecturesByCourseId(
@@ -226,43 +325,20 @@ export class CourseController {
 		@Res() res: Response,
 	) {
 		try {
-			if (req.user.status == 'student') {
-				//학생일때
-				const applicationData =
-					await this.applicationService.findApplicationById(
-						req.user.id,
-						cid,
-					);
+			const data: Lecture[] =
+				await this.courseService.findAllLecturesByCourseId(cid);
 
-				if (!applicationData) {
-					res.status(403).send({
-						code: '',
-						msg: '신청하지 않은 강의입니다.',
-						data: null,
-					});
-				} else {
-					const data: Lecture[] =
-						await this.courseService.findAllLecturesByCourseId(cid);
-
-					res.status(200).send({
-						code: 'SUCCESS',
-						msg: '성공',
-						data: data,
-					});
-				}
-			} else {
-				//교수일때
-				const data: Lecture[] =
-					await this.courseService.findAllLecturesByCourseId(cid);
-
-				res.status(200).send({
-					code: 'SUCCESS',
-					msg: '성공',
-					data: data,
-				});
-			}
+			res.status(200).send({
+				code: 'SUCCESS',
+				msg: '성공',
+				data: data,
+			});
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -287,33 +363,46 @@ export class CourseController {
 
 			if (!data) {
 				res.status(404).send({
-					code: '',
-					msg: '존재하지 않는 강의',
+					code: 'ERR_404',
+					msg: '데이터가 존재하지 않음',
 					data: null,
 				});
 			} else {
-				const applicationData =
-					await this.applicationService.findApplicationById(
-						req.user.id,
-						data.course.id,
-					);
-
-				if (req.user.status == 'student' && !applicationData) {
-					res.status(403).send({
-						code: '',
-						msg: '신청하지 않은 코스',
-						data: null,
-					});
-				} else {
+				const aData = await this.applicationService.findApplicationById(
+					req.user.id,
+					data.course.id,
+				);
+				if (req.user.id == data.course.user.id) {
+					//교수 본인이 개설한 코스의 강의인 경우
 					res.status(200).send({
 						code: 'SUCCESS',
 						msg: '성공',
 						data: data,
+						self: 1,
+					});
+				} else if (req.user.status == 'student' && !aData) {
+					//코스를 신청하지 않은 학생인 경우
+					res.status(402).send({
+						code: 'ERR_402',
+						msg: '자격 없음',
+						data: null,
+					});
+				} else {
+					//그 외의 교수 or 신청한 학생인 경우
+					res.status(200).send({
+						code: 'SUCCESS',
+						msg: '성공',
+						data: data,
+						self: 0,
 					});
 				}
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -345,14 +434,18 @@ export class CourseController {
 				);
 				res.status(200).send(data);
 			} else {
-				res.status(401).send({
-					code: '',
-					msg: '자격이 없습니다',
+				res.status(402).send({
+					code: 'ERR_402',
+					msg: '자격 없음',
 					data: null,
 				});
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -370,27 +463,31 @@ export class CourseController {
 	async removeCourse(@Req() req, @Param('id') id, @Res() res: Response) {
 		try {
 			const course = await this.courseService.findCourseById(id);
-			if (!course) {
-				res.status(400).send({
-					code: '',
-					msg: '존재하지 않는 코스',
+			// if (!course) {
+			// 	res.status(400).send({
+			// 		code: '',
+			// 		msg: '존재하지 않는 코스',
+			// 		data: null,
+			// 	});
+			// } else {
+			if (req.user.id != course.user.id) {
+				res.status(402).send({
+					code: 'ERR_402',
+					msg: '자격 없음',
 					data: null,
 				});
 			} else {
-				if (req.user.id != course.user.id) {
-					res.status(401).send({
-						code: '',
-						msg: '자격 없음',
-						data: null,
-					});
-				} else {
-					const data = await this.courseService.deleteCourse(course);
+				const data = await this.courseService.deleteCourse(course);
 
-					res.status(200).send(data);
-				}
+				res.status(200).send(data);
 			}
+			// }
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -416,8 +513,8 @@ export class CourseController {
 			);
 			if (!course) {
 				res.status(404).send({
-					code: '',
-					msg: '존재하지 않는 코스',
+					code: 'ERR_404',
+					msg: '코스 데이터가 존재하지 않음',
 					data: null,
 				});
 			} else {
@@ -428,15 +525,19 @@ export class CourseController {
 					);
 					res.status(200).send(data);
 				} else {
-					res.status(401).send({
-						code: '',
+					res.status(402).send({
+						code: 'ERR_402',
 						msg: '자격 없음',
 						data: null,
 					});
 				}
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -460,29 +561,31 @@ export class CourseController {
 			const lecture: Lecture = await this.courseService.findLectureById(
 				id,
 			);
-			if (!lecture) {
-				res.status(400).send({
-					code: '',
-					msg: '존재하지 않는 강의',
+			// if (!lecture) {
+			// 	res.status(404).send({
+			// 		code: '',
+			// 		msg: '존재하지 않는 강의',
+			// 		data: null,
+			// 	});
+			// } else {
+			if (req.user.id == lecture.course.user.id) {
+				res.status(402).send({
+					code: 'ERR_402',
+					msg: '자격 없음',
 					data: null,
 				});
 			} else {
-				if (req.user.id == lecture.course.user.id) {
-					res.status(401).send({
-						code: '',
-						msg: '자격 없음',
-						data: null,
-					});
-				} else {
-					const data = await this.courseService.deleteLecture(
-						lecture,
-					);
+				const data = await this.courseService.deleteLecture(lecture);
 
-					res.status(200).send({ data: data });
-				}
+				res.status(200).send(data);
 			}
+			// }
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 }

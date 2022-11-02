@@ -105,6 +105,11 @@ export class ApplicationService {
 						course: {
 							id: true,
 							name: true,
+							user: {
+								id: true,
+								userId: true,
+								name: true,
+							},
 						},
 						createdDate: true,
 					},
@@ -115,7 +120,7 @@ export class ApplicationService {
 					},
 					relations: {
 						user: true,
-						course: true,
+						course: { user: true },
 					},
 				})
 				.catch((err) => {
@@ -147,14 +152,14 @@ export class ApplicationService {
 
 		if (!userData) {
 			return {
-				code: '',
+				code: 'FAIL_USER_NOT_EXIST',
 				msg: '유저 정보가 존재하지 않습니다.',
 				data: null,
 			};
 		} else if (!courseData) {
 			return {
-				code: '',
-				msg: '강의 정보가 존재하지 않습니다.',
+				code: 'FAIL_COURSE_NO_EXIST',
+				msg: '코스 정보가 존재하지 않습니다.',
 				data: null,
 			};
 		}
@@ -162,7 +167,11 @@ export class ApplicationService {
 		const applicationData = await this.findApplicationById(id, courseId);
 
 		if (applicationData != null) {
-			return { code: '', msg: '이미 신청된 강의입니다', data: null };
+			return {
+				code: 'FAIL_ALREADY_APPLIED',
+				msg: '이미 신청한 강의입니다',
+				data: null,
+			};
 		}
 
 		const result = await this.applicationRepository
@@ -176,18 +185,17 @@ export class ApplicationService {
 
 		return {
 			code: 'SUCCESS',
-			msg: '수강신청에 성공했습니다.',
+			msg: '수강 신청에 성공했습니다.',
 			data: result,
 		};
 	}
 
 	//없으면 삭제 못하는거니까 user, course 확인할 필요는 없을듯
-	async deleteApplication(id: number, courseId: number) {
-		const applicationData = await this.findApplicationById(id, courseId);
-		if (!applicationData) {
-			return { code: '', msg: '신청하지 않은 강의입니다.', data: null };
-		}
-
+	async deleteApplication(applicationData: Application) {
+		// const applicationData = await this.findApplicationById(id, courseId);
+		// if (!applicationData) {
+		// 	return { code: 'FAIL', msg: '신청하지 않은 강의입니다.', data: null };
+		// }
 		const result = await this.applicationRepository
 			.remove(applicationData)
 			.catch((err) => {
@@ -196,7 +204,7 @@ export class ApplicationService {
 
 		return {
 			code: 'SUCCESS',
-			msg: '신청 삭제에 성공했습니다.',
+			msg: '수강 정보 삭제에 성공했습니다.',
 			data: result,
 		};
 	}

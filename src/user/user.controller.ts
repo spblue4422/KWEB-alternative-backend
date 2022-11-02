@@ -39,9 +39,17 @@ export class UserController {
 	async getAllUsers(@Req() req: Request, @Res() res: Response) {
 		try {
 			const data: User[] = await this.userService.findAllUsers();
-			res.status(200).send({ code: 'SUCCESS', msg: '성공', data: data });
+			res.status(200).send({
+				code: 'SUCCESS',
+				msg: '성공',
+				data: data,
+			});
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -69,23 +77,41 @@ export class UserController {
 			) {
 				const data = await this.userService.findUserByUserId(uid);
 				if (!data) {
-					res.status(404).send({ code: '', msg: '', data: null });
-				} else {
-					res.status(200).send({
-						code: 'SUCCESS',
-						msg: '성공',
-						data: data,
+					res.status(404).send({
+						code: 'ERR_404',
+						msg: '데이터가 존재하지 않음',
+						data: null,
 					});
+				} else {
+					if (req.user.userId == uid) {
+						res.status(200).send({
+							code: 'SUCCESS',
+							msg: '성공',
+							data: data,
+							self: 1,
+						});
+					} else {
+						res.status(200).send({
+							code: 'SUCCESS',
+							msg: '성공',
+							data: data,
+							self: 0,
+						});
+					}
 				}
 			} else {
-				res.status(401).send({
-					code: '',
+				res.status(402).send({
+					code: 'ERR_402',
 					msg: '자격 없음',
 					data: null,
 				});
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -109,7 +135,11 @@ export class UserController {
 
 			res.status(200).send(data);
 		} catch (err) {
-			res.status(500).send({ code: 'ERR', msg: '서버 에러', data: err });
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -134,7 +164,11 @@ export class UserController {
 	) {
 		try {
 			if (req.user.userId != uid) {
-				res.status(401).send({ code: '', msg: '', data: null });
+				res.status(402).send({
+					code: 'ERR_402',
+					msg: '자격 없음',
+					data: null,
+				});
 			} else {
 				const user = await this.userService.findUserByUserId(uid);
 				const data = await this.userService.deleteUser(user);
@@ -142,7 +176,11 @@ export class UserController {
 				res.status(200).send(data);
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 }

@@ -47,7 +47,11 @@ export class ApplicationController {
 	) {
 		try {
 			if (req.user.status != 'student') {
-				res.status(401).send({ code: '', msg: '자격없음', data: null });
+				res.status(402).send({
+					code: 'ERR_402',
+					msg: '자격없음',
+					data: null,
+				});
 			} else {
 				const data = await this.applicationService.insertApplication(
 					req.user.id,
@@ -57,7 +61,11 @@ export class ApplicationController {
 				res.status(200).send(data);
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -79,17 +87,30 @@ export class ApplicationController {
 	) {
 		try {
 			if (req.user.status != 'student') {
-				res.status(401).send({ code: '', msg: '자격없음', data: null });
+				res.status(402).send({
+					code: 'ERR_402',
+					msg: '자격없음',
+					data: null,
+				});
 			} else {
+				const application =
+					await this.applicationService.findApplicationById(
+						req.user.id,
+						cid,
+					);
+
 				const data = await this.applicationService.deleteApplication(
-					req.user.id,
-					cid,
+					application,
 				);
 
 				res.status(200).send(data);
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 
@@ -111,48 +132,44 @@ export class ApplicationController {
 		@Res() res: Response,
 	) {
 		try {
-			if (req.user.status != 'professor') {
-				res.status(401).send({
-					code: '',
+			const course = await this.courseRepository
+				.find({
+					select: {
+						id: true,
+					},
+					where: {
+						id: cid,
+						user: {
+							id: req.user.id,
+						},
+					},
+					relations: {
+						user: true,
+					},
+				})
+				.catch((err) => {
+					throw new InternalServerErrorException();
+				});
+			if (!course) {
+				res.status(402).send({
+					code: 'ERR_402',
 					msg: '자격 없음',
 					data: null,
 				});
 			} else {
-				const course = await this.courseRepository
-					.find({
-						select: {
-							id: true,
-						},
-						where: {
-							id: cid,
-							user: {
-								id: req.user.id,
-							},
-						},
-						relations: {
-							user: true,
-						},
-					})
-					.catch((err) => {
-						throw new InternalServerErrorException();
-					});
-				if (!course) {
-					const data =
-						await this.applicationService.deleteApplication(
-							uid,
-							cid,
-						);
-					res.status(200).send(data);
-				} else {
-					res.status(400).send({
-						code: '',
-						msg: '본인의 강의가 아니거나, 잘못된 id',
-						data: null,
-					});
-				}
+				const application =
+					await this.applicationService.findApplicationById(uid, cid);
+				const data = await this.applicationService.deleteApplication(
+					application,
+				);
+				res.status(200).send(data);
 			}
 		} catch (err) {
-			res.status(500).send(err);
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
 		}
 	}
 }

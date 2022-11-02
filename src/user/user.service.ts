@@ -119,7 +119,7 @@ export class UserService {
 		const r2 = await this.isUniqueInfo('uniqueNum', uniqueNum);
 		if (r2) {
 			return {
-				code: 'FAIL_UN_DUPLICATION',
+				code: 'FAIL_UNIQUENUM_DUPLICATION',
 				msg: '중복 학번입니다.',
 				data: r2,
 			};
@@ -127,7 +127,7 @@ export class UserService {
 
 		if (status !== 'student' && status !== 'professor') {
 			return {
-				code: 'FAIL_STATUS_ERR',
+				code: 'FAIL_STATUS_WRONG',
 				msg: '잘못된 상태 정보 입니다.',
 				data: null,
 			};
@@ -150,7 +150,7 @@ export class UserService {
 
 		return {
 			code: 'SUCCESS',
-			msg: '유저 정보 추가에 성공했습니다.',
+			msg: '유저 추가에 성공했습니다.',
 			data: result,
 		};
 	}
@@ -162,7 +162,7 @@ export class UserService {
 
 		if (status !== 'student' && status !== 'professor') {
 			return {
-				code: 'FAIL',
+				code: 'FAIL_STATUS_WRONG',
 				msg: '잘못된 상태 정보 입니다.',
 				data: null,
 			};
