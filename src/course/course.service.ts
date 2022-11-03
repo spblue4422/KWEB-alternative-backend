@@ -245,6 +245,41 @@ export class CourseService {
 					throw new InternalServerErrorException();
 				});
 		} else {
+			return this.lectureRepository
+				.find({
+					select: {
+						id: true,
+						title: true,
+						createdDate: true,
+						course: {
+							id: true,
+							name: true,
+							user: {
+								id: true,
+								userId: true,
+								name: true,
+							},
+						},
+					},
+					where: {
+						course: {
+							user: {
+								id: id,
+							},
+						},
+					},
+					relations: {
+						course: {
+							user: true,
+						},
+					},
+					order: {
+						createdDate: 'DESC',
+					},
+				})
+				.catch((err) => {
+					throw new InternalServerErrorException();
+				});
 		}
 	}
 

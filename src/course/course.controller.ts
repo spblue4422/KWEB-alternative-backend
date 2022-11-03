@@ -94,11 +94,11 @@ export class CourseController {
 	//신청 코스 조회
 	@UseGuards(AuthGuard('jwt'))
 	@ApiOperation({
-		summary: '신청/개설 코스 목록 조회 API',
-		description: '신청/개설 코스 목록 조회',
+		summary: '본인 신청/개설 코스 목록 조회 API',
+		description: '본인 신청/개설 코스 목록 조회',
 	})
 	@ApiCreatedResponse({
-		description: '신청/개설 코스 목록 조회',
+		description: '본인 신청/개설 코스 목록 조회',
 		type: Course,
 	})
 	@Get('/list/my')

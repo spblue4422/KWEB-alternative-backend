@@ -53,16 +53,37 @@ export class UserController {
 		}
 	}
 
-	// 본인 정보 확인 / 교수의 학생 정보 확인
-	// 현재 교수의 교수 정보 확인 가능 - 이거 맞나
+	//본인 정보 조회
+	@UseGuards(AuthGuard('jwt'))
+	@Get('/my')
+	async getMyInfoDetail(@Req() req, @Res() res) {
+		try {
+			const data: User = await this.userService.findUserByUserId(
+				req.user.userId,
+			);
+			res.status(200).send({
+				code: 'SUCCESS',
+				msg: '성공',
+				data: data,
+			});
+		} catch (err) {
+			res.status(500).send({
+				code: 'ERR_500',
+				msg: '서버 에러',
+				data: err,
+			});
+		}
+	}
+
+	// 교수 전용
 	@UseGuards(AuthGuard('jwt'))
 	@Get('/:uid')
 	@ApiOperation({
-		summary: '유저 조회 API',
-		description: '유저 조회',
+		summary: '타 유저 정보 조회 API',
+		description: '타 유저 정보 조회',
 	})
 	@ApiCreatedResponse({
-		description: '유저 조회',
+		description: '타 유저 정보 조회',
 		type: UserDetailResponseDto,
 	})
 	async getUserDetail(
@@ -71,10 +92,7 @@ export class UserController {
 		@Res() res: Response,
 	) {
 		try {
-			if (
-				req.user.userId == uid ||
-				(req.user.userId != uid && req.user.status == 'professor')
-			) {
+			if (req.user.status == 'professor') {
 				const data = await this.userService.findUserByUserId(uid);
 				if (!data) {
 					res.status(404).send({
@@ -83,21 +101,11 @@ export class UserController {
 						data: null,
 					});
 				} else {
-					if (req.user.userId == uid) {
-						res.status(200).send({
-							code: 'SUCCESS',
-							msg: '성공',
-							data: data,
-							self: 1,
-						});
-					} else {
-						res.status(200).send({
-							code: 'SUCCESS',
-							msg: '성공',
-							data: data,
-							self: 0,
-						});
-					}
+					res.status(200).send({
+						code: 'SUCCESS',
+						msg: '성공',
+						data: data,
+					});
 				}
 			} else {
 				res.status(402).send({

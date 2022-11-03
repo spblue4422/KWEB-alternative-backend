@@ -65,6 +65,7 @@ export class UserService {
 					userId: true,
 					uniqueNum: true,
 					createdDate: true,
+					status: true,
 				},
 				where: {
 					userId: uid,

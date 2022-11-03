@@ -76,6 +76,11 @@ export class ApplicationService {
 						course: {
 							id: true,
 							name: true,
+							user: {
+								id: true,
+								userId: true,
+								name: true,
+							},
 						},
 						createdDate: true,
 					},
@@ -86,7 +91,9 @@ export class ApplicationService {
 					},
 					relations: {
 						user: true,
-						course: true,
+						course: {
+							user: true
+						},
 					},
 				})
 				.catch((err) => {
