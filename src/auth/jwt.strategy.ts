@@ -19,7 +19,6 @@ const fromAuthCookie = function () {
 export class JwtStrategy extends PassportStrategy(Strategy) {
 	constructor() {
 		super({
-			//jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
 			jwtFromRequest: fromAuthCookie(),
 			ignoreExpiration: false,
 			secretOrKey: '4422spblue',

@@ -20,7 +20,7 @@ import { Repository } from 'typeorm';
 import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
 import { ResultResponseDto } from 'src/util/resultResponseDto';
 
-@Controller('application')
+@Controller('applications')
 export class ApplicationController {
 	constructor(
 		@InjectRepository(Course)
@@ -71,7 +71,7 @@ export class ApplicationController {
 
 	// 학생 - 수강신청 취소
 	@UseGuards(AuthGuard('jwt'))
-	@Delete('/delete')
+	@Delete('/delete/:cid')
 	@ApiOperation({
 		summary: '수강 취소 API',
 		description: '수강 취소 추가',
@@ -82,7 +82,7 @@ export class ApplicationController {
 	})
 	async removeApplication(
 		@Req() req,
-		@Query('cid') cid: number,
+		@Param('cid') cid: number,
 		@Res() res: Response,
 	) {
 		try {
@@ -116,7 +116,7 @@ export class ApplicationController {
 
 	// 교수 - 자신 코스 신청한 학생 드롭
 	@UseGuards(AuthGuard('jwt'))
-	@Delete('/drop')
+	@Delete('/ban')
 	@ApiOperation({
 		summary: '수강 금지 API',
 		description: '수강 금지 추가',

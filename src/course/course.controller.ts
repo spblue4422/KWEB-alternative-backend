@@ -543,7 +543,7 @@ export class CourseController {
 
 	// 강의 삭제
 	@UseGuards(AuthGuard('jwt'))
-	@Delete('/lectures/remove')
+	@Delete('/lectures/remove/:id')
 	@ApiOperation({
 		summary: '강의 정보 삭제 API',
 		description: '강의 정보 삭제',
