@@ -42,7 +42,7 @@ export class ApplicationController {
 	})
 	async addApplication(
 		@Req() req,
-		@Body() cid: number,
+		@Body() body: { cid: number },
 		@Res() res: Response,
 	) {
 		try {
@@ -55,7 +55,7 @@ export class ApplicationController {
 			} else {
 				const data = await this.applicationService.insertApplication(
 					req.user.id,
-					cid,
+					body.cid,
 				);
 
 				res.status(200).send(data);

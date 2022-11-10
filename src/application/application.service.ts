@@ -147,6 +147,7 @@ export class ApplicationService {
 			.catch((err) => {
 				throw new InternalServerErrorException();
 			});
+
 		const courseData = await this.courseRepository
 			.findOne({
 				where: {

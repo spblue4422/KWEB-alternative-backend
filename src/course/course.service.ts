@@ -114,6 +114,7 @@ export class CourseService {
 
 	// 코스 검색
 	async findAllCoursesBySearch(text: string) {
+		//sql injection test 필요
 		return this.courseRepository
 			.find({
 				select: {
