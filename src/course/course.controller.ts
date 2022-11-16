@@ -463,13 +463,6 @@ export class CourseController {
 	async removeCourse(@Req() req, @Param('id') id, @Res() res: Response) {
 		try {
 			const course = await this.courseService.findCourseById(id);
-			// if (!course) {
-			// 	res.status(400).send({
-			// 		code: '',
-			// 		msg: '존재하지 않는 코스',
-			// 		data: null,
-			// 	});
-			// } else {
 			if (req.user.id != course.user.id) {
 				res.status(402).send({
 					code: 'ERR_402',
@@ -561,14 +554,7 @@ export class CourseController {
 			const lecture: Lecture = await this.courseService.findLectureById(
 				id,
 			);
-			// if (!lecture) {
-			// 	res.status(404).send({
-			// 		code: '',
-			// 		msg: '존재하지 않는 강의',
-			// 		data: null,
-			// 	});
-			// } else {
-			if (req.user.id == lecture.course.user.id) {
+			if (req.user.id != lecture.course.user.id) {
 				res.status(402).send({
 					code: 'ERR_402',
 					msg: '자격 없음',
@@ -579,7 +565,6 @@ export class CourseController {
 
 				res.status(200).send(data);
 			}
-			// }
 		} catch (err) {
 			res.status(500).send({
 				code: 'ERR_500',

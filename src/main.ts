@@ -3,6 +3,14 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { setUpSwagger } from './util/swagger';
 import * as cookieParser from 'cookie-parser';
+import * as dotenv from 'dotenv';
+import path from 'path';
+
+// dotenv.config({
+// 	path: path.resolve(
+// 		process.env.NODE_ENV === 'production' ? '.prod.env' : '.local.env',
+// 	),
+// });
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);

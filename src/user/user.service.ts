@@ -107,22 +107,20 @@ export class UserService {
 	// 근데 이렇게 isuniqueinfo 만들어서 쓰는거보다 그냥 find해서 찾는게 코드가 더 줄지 않을까?
 	async insertUser(createUserDto: CreateUserDto) {
 		const { userId, password, name, uniqueNum, status } = createUserDto;
-		const r1 = await this.isUniqueInfo('userId', userId);
-		if (r1) {
-			console.log(r1);
+		
+		if (await this.isUniqueInfo('userId', userId)) {
 			return {
 				code: 'FAIL_ID_DUPLICATION',
 				msg: '중복 ID입니다.',
-				data: r1,
+				data: null,
 			};
 		}
 
-		const r2 = await this.isUniqueInfo('uniqueNum', uniqueNum);
-		if (r2) {
+		if (await this.isUniqueInfo('uniqueNum', uniqueNum)) {
 			return {
 				code: 'FAIL_UNIQUENUM_DUPLICATION',
 				msg: '중복 학번입니다.',
-				data: r2,
+				data: null,
 			};
 		}
 
