@@ -3,7 +3,6 @@ import {
 	Controller,
 	Delete,
 	Get,
-	InternalServerErrorException,
 	Param,
 	Post,
 	Query,
@@ -12,7 +11,7 @@ import {
 	UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiCreatedResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiCreatedResponse } from '@nestjs/swagger';
 import { Response, Request } from 'express';
 import { ApplicationService } from 'src/application/application.service';
 import { User } from 'src/user/user.entity';
@@ -212,7 +211,7 @@ export class CourseController {
 
 	// 코스 정보 확인
 	@UseGuards(AuthGuard('jwt'))
-	@Get('/:id')
+	@Get('/:cid')
 	@ApiOperation({
 		summary: '코스 조회 API',
 		description: '코스 조회',
@@ -223,15 +222,15 @@ export class CourseController {
 	})
 	async getCourseDetail(
 		@Req() req,
-		@Param('id') id: number,
+		@Param('cid') cid: number,
 		@Res() res: Response,
 	) {
 		try {
-			const data: Course = await this.courseService.findCourseById(id);
+			const data: Course = await this.courseService.findCourseById(cid);
 			const aData: Application =
 				await this.applicationService.findApplicationById(
 					req.user.id,
-					id,
+					cid,
 				);
 
 			if (!data) {
@@ -344,7 +343,7 @@ export class CourseController {
 
 	// 강의 조회
 	@UseGuards(AuthGuard('jwt'))
-	@Get('/lectures/:id')
+	@Get('/lectures/:lid')
 	@ApiOperation({
 		summary: '강의 조회 API',
 		description: '강의 조회',
@@ -355,11 +354,11 @@ export class CourseController {
 	})
 	async getLectureById(
 		@Req() req,
-		@Param('id') id: number,
+		@Param('lid') lid: number,
 		@Res() res: Response,
 	) {
 		try {
-			const data: Lecture = await this.courseService.findLectureById(id);
+			const data: Lecture = await this.courseService.findLectureById(lid);
 
 			if (!data) {
 				res.status(404).send({
@@ -451,7 +450,7 @@ export class CourseController {
 
 	// 코스 삭제
 	@UseGuards(AuthGuard('jwt'))
-	@Delete('/remove/:id')
+	@Delete('/remove/:cid')
 	@ApiOperation({
 		summary: '코스 정보 삭제 API',
 		description: '코스 정보 삭제',
@@ -460,9 +459,9 @@ export class CourseController {
 		description: '코스 정보 삭제',
 		type: ResultResponseDto,
 	})
-	async removeCourse(@Req() req, @Param('id') id, @Res() res: Response) {
+	async removeCourse(@Req() req, @Param('cid') cid, @Res() res: Response) {
 		try {
-			const course = await this.courseService.findCourseById(id);
+			const course = await this.courseService.findCourseById(cid);
 			if (req.user.id != course.user.id) {
 				res.status(402).send({
 					code: 'ERR_402',
@@ -536,7 +535,7 @@ export class CourseController {
 
 	// 강의 삭제
 	@UseGuards(AuthGuard('jwt'))
-	@Delete('/lectures/remove/:id')
+	@Delete('/lectures/remove/:lid')
 	@ApiOperation({
 		summary: '강의 정보 삭제 API',
 		description: '강의 정보 삭제',
@@ -547,12 +546,12 @@ export class CourseController {
 	})
 	async removeLecture(
 		@Req() req,
-		@Param('id') id: number,
+		@Param('lid') lid: number,
 		@Res() res: Response,
 	) {
 		try {
 			const lecture: Lecture = await this.courseService.findLectureById(
-				id,
+				lid,
 			);
 			if (req.user.id != lecture.course.user.id) {
 				res.status(402).send({

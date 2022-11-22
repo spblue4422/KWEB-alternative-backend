@@ -25,7 +25,7 @@ export class AuthService {
 				throw new InternalServerErrorException();
 			});
 
-		if (data && await compare(password, data.password)) {
+		if (data && (await compare(password, data.password))) {
 			return data;
 		}
 
@@ -43,7 +43,6 @@ export class AuthService {
 		return {
 			userId: user.userId,
 			token: this.jwtService.sign(payload),
-			message: '로그인 성공',
 		};
 	}
 }

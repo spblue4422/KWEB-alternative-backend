@@ -56,6 +56,14 @@ export class UserController {
 	//본인 정보 조회
 	@UseGuards(AuthGuard('jwt'))
 	@Get('/my')
+	@ApiOperation({
+		summary: '본인 정보 조회 API',
+		description: '본인 정보 조회',
+	})
+	@ApiCreatedResponse({
+		description: '본인 정보 조회',
+		type: UserDetailResponseDto,
+	})
 	async getMyInfoDetail(@Req() req, @Res() res) {
 		try {
 			const data: User = await this.userService.findUserByUserId(

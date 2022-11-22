@@ -71,7 +71,7 @@ export class ApplicationController {
 
 	// 학생 - 수강신청 취소
 	@UseGuards(AuthGuard('jwt'))
-	@Delete('/delete/:cid')
+	@Delete('/remove/:cid')
 	@ApiOperation({
 		summary: '수강 취소 API',
 		description: '수강 취소 추가',
